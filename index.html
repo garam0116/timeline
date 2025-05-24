@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연표 제작기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b, #4ecdc4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .form-col {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ffd700;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        button {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .faction-manager {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .faction-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .faction-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .timeline-container {
+            position: relative;
+            margin-top: 40px;
+            padding: 20px 0;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #ffd700, #ff6b6b, #4ecdc4);
+            transform: translateX(-50%);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin: 40px 0;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .timeline-item.left {
+            text-align: right;
+            padding-right: calc(50% + 30px);
+        }
+
+        .timeline-item.right {
+            text-align: left;
+            padding-left: calc(50% + 30px);
+        }
+
+        .timeline-item.center {
+            text-align: center;
+            padding: 0 30px;
+        }
+
+        .timeline-content {
+            background: #fff;
+            color: #333;
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .timeline-item.center .timeline-content {
+            background: #fff;
+            z-index: 15;
+        }
+
+        .timeline-content:hover {
+            transform: translateY(-5px);
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 50%;
+            top: 20px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            border: 3px solid #1a1a2e;
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .event-year {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .event-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .event-description {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .faction-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .export-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 40px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .export-textarea {
+            height: 200px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .timeline-item.left,
+            .timeline-item.right {
+                text-align: center;
+                padding: 0 20px;
+            }
+
+            .timeline-line {
+                left: 20px;
+                transform: none;
+            }
+
+            .timeline-dot {
+                left: 20px;
+                transform: translateX(-50%);
+            }
+
+            .faction-list {
+                grid-template-columns: 1fr;
+            }
+        }
+        .edit-form {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-small {
+            background: linear-gradient(45deg, #4ecdc4, #45b7aa);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+        }
+
+        .btn-edit {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+        }
+
+        .btn-delete {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+
+        .event-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>연표 제작기</h1>
+        </div>
+
+        <div class="controls">
+            <h3 style="margin-bottom: 20px; color: #ffd700;">⚙️ 타임라인 설정</h3>
+            <div class="form-row">
+                <div class="form-col">
+                    <label for="timelineColor">세로선 색상</label>
+                    <input type="color" id="timelineColor" value="#ffd700">
+                </div>
+                <div class="form-col">
+                    <label for="timelineWidth">세로선 굵기 (px)</label>
+                    <input type="number" id="timelineWidth" value="4" min="1" max="20">
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 20px; color: #ffd700; margin-top: 20px;">📚 진영 관리</h3>
+            <div class="faction-manager">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="factionName">진영 이름</label>
+                        <input type="text" id="factionName" placeholder="예: 범인류사, 이문대">
+                    </div>
+                    <div class="form-col">
+                        <label for="factionColor">진영 색상</label>
+                        <input type="color" id="factionColor" value="#ff6b6b">
+                    </div>
+                    <div class="form-col">
+                        <label for="factionTitleColor">제목 색상</label>
+                        <input type="color" id="factionTitleColor" value="#333333">
+                    </div>
+                    <div class="form-col" style="display: flex; align-items: end;">
+                        <button onclick="addFaction()">진영 추가</button>
+                    </div>
+                </div>
+                <div class="faction-list" id="factionList"></div>
+            </div>
+
+            <h3 style="margin-bottom: 20px; color: #ffd700;">📅 사건 추가</h3>
+            <div class="form-row">
+                <div class="form-col">
+                    <label for="eventYear">연도</label>
+                    <input type="text" id="eventYear" placeholder="예: 2024년, 마법기원 500년">
+                </div>
+                <div class="form-col">
+                    <label for="eventFaction">진영</label>
+                    <select id="eventFaction">
+                        <option value="">중앙 (진영 없음)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="eventTitle">사건 제목</label>
+                <input type="text" id="eventTitle" placeholder="사건의 제목을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="eventDescription">사건 설명</label>
+                <textarea id="eventDescription" rows="3" placeholder="사건에 대한 자세한 설명을 입력하세요"></textarea>
+            </div>
+            <button onclick="addEvent()">사건 추가</button>
+            <button onclick="clearTimeline()" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e); margin-left: 10px;">전체 삭제</button>
+        </div>
+
+        <div class="timeline-container" id="timeline">
+            <div class="timeline-line"></div>
+        </div>
+
+        <div class="export-section">
+            <h3 style="margin-bottom: 15px; color: #ffd700;">🔗 HTML 내보내기</h3>
+            <p style="margin-bottom: 15px; opacity: 0.8;">아래 코드를 복사하여 HTML 게시판에 붙여넣으세요:</p>
+            <textarea id="exportCode" class="export-textarea" readonly placeholder="연표를 만들면 HTML 코드가 여기에 생성됩니다..."></textarea>
+            <button onclick="copyToClipboard()" style="margin-top: 10px;">📋 클립보드에 복사</button>
+        </div>
+    </div>
+
+    <script>
+        let factions = [];
+        let events = [];
+        let timelineSettings = {
+            color: '#ffd700',
+            width: 4
+        };
+
+        // 기본 진영 추가
+        function initDefaultFactions() {
+            factions = [
+                { name: '중앙 (진영 없음)', color: '#6c757d', titleColor: '#333333', isDefault: true },
+                { name: '범인류사', color: '#4ecdc4', titleColor: '#333333' },
+                { name: '이문대', color: '#ff6b6b', titleColor: '#333333' }
+            ];
+            updateFactionDisplay();
+            updateFactionSelect();
+            updateTimelineSettings();
+        }
+
+        function addFaction() {
+            const name = document.getElementById('factionName').value.trim();
+            const color = document.getElementById('factionColor').value;
+            const titleColor = document.getElementById('factionTitleColor').value;
+
+            if (!name) {
+                alert('진영 이름을 입력해주세요!');
+                return;
+            }
+
+            if (factions.some(f => f.name === name)) {
+                alert('이미 존재하는 진영입니다!');
+                return;
+            }
+
+            factions.push({ name, color, titleColor });
+            updateFactionDisplay();
+            updateFactionSelect();
+
+            document.getElementById('factionName').value = '';
+            document.getElementById('factionColor').value = '#ff6b6b';
+            document.getElementById('factionTitleColor').value = '#333333';
+        }
+
+        function removeFaction(index) {
+            if (factions[index].isDefault) {
+                alert('기본 카테고리는 삭제할 수 없습니다!');
+                return;
+            }
+            factions.splice(index, 1);
+            updateFactionDisplay();
+            updateFactionSelect();
+            updateTimeline();
+        }
+
+        function updateFactionDisplay() {
+            const list = document.getElementById('factionList');
+            list.innerHTML = factions.map((faction, index) => `
+                <div class="faction-item">
+                    <div class="color-preview" style="background-color: ${faction.color}"></div>
+                    <span style="flex: 1">${faction.name}</span>
+                    <div class="edit-buttons">
+                        <button class="btn-small btn-edit" onclick="editFaction(${index})">수정</button>
+                        ${!faction.isDefault ? 
+                            `<button class="btn-small btn-delete" onclick="removeFaction(${index})">삭제</button>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateFactionSelect() {
+            const select = document.getElementById('eventFaction');
+            select.innerHTML = factions.map(faction => `<option value="${faction.name}">${faction.name}</option>`).join('');
+        }
+
+        function updateTimelineSettings() {
+            const colorInput = document.getElementById('timelineColor');
+            const widthInput = document.getElementById('timelineWidth');
+            
+            colorInput.addEventListener('change', function() {
+                timelineSettings.color = this.value;
+                updateTimelineStyle();
+            });
+            
+            widthInput.addEventListener('change', function() {
+                timelineSettings.width = this.value;
+                updateTimelineStyle();
+            });
+        }
+
+        function updateTimelineStyle() {
+            const timelineLine = document.querySelector('.timeline-line');
+            if (timelineLine) {
+                timelineLine.style.background = timelineSettings.color;
+                timelineLine.style.width = timelineSettings.width + 'px';
+                timelineLine.style.boxShadow = `0 0 20px ${timelineSettings.color}80`;
+            }
+        }
+
+        function addEvent() {
+            const year = document.getElementById('eventYear').value.trim();
+            const title = document.getElementById('eventTitle').value.trim();
+            const description = document.getElementById('eventDescription').value.trim();
+            const factionName = document.getElementById('eventFaction').value;
+
+            if (!year || !title) {
+                alert('연도와 제목은 필수입니다!');
+                return;
+            }
+
+            const faction = factions.find(f => f.name === factionName);
+
+            events.push({
+                year,
+                title,
+                description,
+                faction: faction || null
+            });
+
+            updateTimeline();
+            generateExportCode();
+
+            // 폼 초기화
+            document.getElementById('eventYear').value = '';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventFaction').value = '';
+        }
+
+        function removeEvent(index) {
+            events.splice(index, 1);
+            updateTimeline();
+            generateExportCode();
+        }
+
+        function updateTimeline() {
+            const timeline = document.getElementById('timeline');
+            const line = timeline.querySelector('.timeline-line');
+            timeline.innerHTML = '';
+            
+            // 새로운 타임라인 라인 생성
+            const newLine = document.createElement('div');
+            newLine.className = 'timeline-line';
+            newLine.style.background = timelineSettings.color;
+            newLine.style.width = timelineSettings.width + 'px';
+            newLine.style.boxShadow = `0 0 20px ${timelineSettings.color}80`;
+            timeline.appendChild(newLine);
+
+            let leftCount = 0;
+            let rightCount = 0;
+
+            events.forEach((event, index) => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+
+                let position = 'center';
+                if (event.faction && event.faction.name !== '중앙 (진영 없음)') {
+                    // 진영이 있는 경우 좌우 교대로 배치
+                    if (event.faction.name === '범인류사' || leftCount <= rightCount) {
+                        position = 'left';
+                        leftCount++;
+                    } else {
+                        position = 'right';
+                        rightCount++;
+                    }
+                }
+
+                item.classList.add(position);
+
+                const factionColor = event.faction ? event.faction.color : '#ffd700';
+                const factionBorder = event.faction ? event.faction.color : 'rgba(255, 255, 255, 0.3)';
+                const titleColor = event.faction ? event.faction.titleColor : '#333333';
+
+                item.innerHTML = `
+                    <div class="timeline-content" style="border-color: ${factionBorder}">
+                        ${event.faction && event.faction.name !== '중앙 (진영 없음)' ? `<div class="faction-badge" style="background-color: ${factionColor}">${event.faction.name}</div>` : ''}
+                        <div class="event-year" style="color: ${titleColor}">${event.year}</div>
+                        <div class="event-title" style="color: ${titleColor}">${event.title}</div>
+                        ${event.description ? `<div class="event-description">${event.description}</div>` : ''}
+                        <div class="event-actions">
+                            <button class="btn-small btn-edit" onclick="editEvent(${index})">수정</button>
+                            <button class="btn-small btn-delete" onclick="removeEvent(${index})">삭제</button>
+                        </div>
+                    </div>
+                    <div class="timeline-dot" style="background-color: ${factionColor}"></div>
+                `;
+
+                timeline.appendChild(item);
+            });
+        }
+
+        function clearTimeline() {
+            if (confirm('모든 사건을 삭제하시겠습니까?')) {
+                events = [];
+                updateTimeline();
+                generateExportCode();
+            }
+        }
+
+        function generateExportCode() {
+            if (events.length === 0) {
+                document.getElementById('exportCode').value = '';
+                return;
+            }
+
+            let html = `<div style="position: relative; padding: 20px 0; border-radius: 10px; margin: 20px 0;">
+    <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: ${timelineSettings.width}px; background: ${timelineSettings.color}; transform: translateX(-50%); box-shadow: 0 0 10px ${timelineSettings.color}80;"></div>
+`;
+
+            let leftCount = 0;
+            let rightCount = 0;
+
+            events.forEach(event => {
+                let position = 'center';
+                let alignment = 'center';
+                let padding = '0 30px';
+
+                if (event.faction && event.faction.name !== '중앙 (진영 없음)') {
+                    if (event.faction.name === '범인류사' || leftCount <= rightCount) {
+                        position = 'left';
+                        alignment = 'right';
+                        padding = 'padding-right: calc(50% + 30px)';
+                        leftCount++;
+                    } else {
+                        position = 'right';
+                        alignment = 'left';
+                        padding = 'padding-left: calc(50% + 30px)';
+                        rightCount++;
+                    }
+                }
+
+                const factionColor = event.faction ? event.faction.color : '#6c757d';
+                const factionBorder = event.faction ? event.faction.color : '#dee2e6';
+                const titleColor = event.faction ? event.faction.titleColor : '#333333';
+
+                html += `    <div style="position: relative; margin: 30px 0; text-align: ${alignment}; ${padding};">
+        <div style="position: relative; background: white; border-radius: 10px; padding: 20px; border: 2px solid ${factionBorder}; box-shadow: 0 4px 15px rgba(0,0,0,0.1); ${position === 'center' ? 'z-index: 15;' : ''}">
+            ${event.faction && event.faction.name !== '중앙 (진영 없음)' ? `<div style="display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; margin-bottom: 10px; color: white; background-color: ${factionColor};">${event.faction.name}</div>` : ''}
+            <div style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: ${titleColor};">${event.year}</div>
+            <div style="font-size: 1rem; font-weight: 600; margin-bottom: 10px; color: ${titleColor};">${event.title}</div>
+            ${event.description ? `<div style="line-height: 1.5; color: #6c757d;">${event.description}</div>` : ''}
+        </div>
+        <div style="position: absolute; left: 50%; top: 20px; width: 12px; height: 12px; border-radius: 50%; background-color: ${factionColor}; transform: translateX(-50%); border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.2); z-index: 10;"></div>
+    </div>
+`;
+            });
+
+            html += '</div>';
+
+            document.getElementById('exportCode').value = html;
+        }
+
+        function copyToClipboard() {
+            const textarea = document.getElementById('exportCode');
+            if (!textarea.value) {
+                alert('복사할 내용이 없습니다!');
+                return;
+            }
+            
+            textarea.select();
+            document.execCommand('copy');
+            alert('클립보드에 복사되었습니다!');
+        }
+        // 진영 수정 관련 함수들
+        let editingFactionIndex = -1;
+
+        function editFaction(index) {
+            editingFactionIndex = index;
+            const faction = factions[index];
+            
+            document.getElementById('factionName').value = faction.name;
+            document.getElementById('factionColor').value = faction.color;
+            document.getElementById('factionTitleColor').value = faction.titleColor;
+            
+            // 버튼 텍스트 변경
+            const addButton = document.querySelector('button[onclick="addFaction()"]');
+            addButton.textContent = '수정 완료';
+            addButton.onclick = function() { updateFaction(); };
+            
+            // 취소 버튼 추가
+            if (!document.getElementById('cancelEditBtn')) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.id = 'cancelEditBtn';
+                cancelBtn.textContent = '취소';
+                cancelBtn.style.background = 'linear-gradient(45deg, #6c757d, #868e96)';
+                cancelBtn.style.marginLeft = '10px';
+                cancelBtn.onclick = cancelFactionEdit;
+                addButton.parentNode.appendChild(cancelBtn);
+            }
+        }
+
+        function updateFaction() {
+            const name = document.getElementById('factionName').value.trim();
+            const color = document.getElementById('factionColor').value;
+            const titleColor = document.getElementById('factionTitleColor').value;
+
+            if (!name) {
+                alert('진영 이름을 입력해주세요!');
+                return;
+            }
+
+            // 다른 진영과 이름 중복 확인 (자기 자신 제외)
+            if (factions.some((f, index) => f.name === name && index !== editingFactionIndex)) {
+                alert('이미 존재하는 진영입니다!');
+                return;
+            }
+
+            const oldName = factions[editingFactionIndex].name;
+            factions[editingFactionIndex] = {
+                ...factions[editingFactionIndex],
+                name, color, titleColor
+            };
+
+            // 기존 이벤트들의 진영 이름도 업데이트
+            events.forEach(event => {
+                if (event.faction && event.faction.name === oldName) {
+                    event.faction = factions[editingFactionIndex];
+                }
+            });
+
+            updateFactionDisplay();
+            updateFactionSelect();
+            updateTimeline();
+            generateExportCode();
+            cancelFactionEdit();
+        }
+
+        function cancelFactionEdit() {
+            editingFactionIndex = -1;
+            
+            // 폼 초기화
+            document.getElementById('factionName').value = '';
+            document.getElementById('factionColor').value = '#ff6b6b';
+            document.getElementById('factionTitleColor').value = '#333333';
+            
+            // 버튼 원상복구
+            const addButton = document.querySelector('button[onclick="updateFaction()"]') || 
+                            document.querySelector('div.form-col button');
+            if (addButton) {
+                addButton.textContent = '진영 추가';
+                addButton.onclick = addFaction;
+            }
+            
+            // 취소 버튼 제거
+            const cancelBtn = document.getElementById('cancelEditBtn');
+            if (cancelBtn) {
+                cancelBtn.remove();
+            }
+        }
+
+        // 이벤트 수정 관련 함수들
+        let editingEventIndex = -1;
+
+        function editEvent(index) {
+            editingEventIndex = index;
+            const event = events[index];
+            
+            document.getElementById('eventYear').value = event.year;
+            document.getElementById('eventTitle').value = event.title;
+            document.getElementById('eventDescription').value = event.description || '';
+            document.getElementById('eventFaction').value = event.faction ? event.faction.name : '';
+            
+            // 버튼 텍스트 변경
+            const addButton = document.querySelector('button[onclick="addEvent()"]');
+            addButton.textContent = '수정 완료';
+            addButton.onclick = function() { updateEvent(); };
+            
+            // 취소 버튼 추가
+            if (!document.getElementById('cancelEventEditBtn')) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.id = 'cancelEventEditBtn';
+                cancelBtn.textContent = '취소';
+                cancelBtn.style.background = 'linear-gradient(45deg, #6c757d, #868e96)';
+                cancelBtn.style.marginLeft = '10px';
+                addButton.parentNode.appendChild(cancelBtn);
+            }
+            
+            // 해당 위치로 스크롤
+            document.querySelector('.controls').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateEvent() {
+            const year = document.getElementById('eventYear').value.trim();
+            const title = document.getElementById('eventTitle').value.trim();
+            const description = document.getElementById('eventDescription').value.trim();
+            const factionName = document.getElementById('eventFaction').value;
+
+            if (!year || !title) {
+                alert('연도와 제목은 필수입니다!');
+                return;
+            }
+
+            const faction = factions.find(f => f.name === factionName);
+
+            events[editingEventIndex] = {
+                year,
+                title,
+                description,
+                faction: faction || null
+            };
+
+            updateTimeline();
+            generateExportCode();
+            cancelEventEdit();
+        }
+
+        function cancelEventEdit() {
+            editingEventIndex = -1;
+            
+            // 폼 초기화
+            document.getElementById('eventYear').value = '';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventFaction').value = '';
+            
+            // 버튼 원상복구
+            const addButton = document.querySelector('button[onclick="updateEvent()"]') || 
+                            document.querySelector('button[onclick="addEvent()"]');
+            if (addButton) {
+                addButton.textContent = '사건 추가';
+                addButton.onclick = addEvent;
+            }
+            
+            // 취소 버튼 제거
+            const cancelBtn = document.getElementById('cancelEventEditBtn');
+            if (cancelBtn) {
+                cancelBtn.remove();
+            }
+        }
+        // 초기화
+        initDefaultFactions();
+    </script>
+</body>
+</html>
