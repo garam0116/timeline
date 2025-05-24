@@ -423,7 +423,16 @@
         <div class="timeline-container" id="timeline">
             <div class="timeline-line"></div>
         </div>
-
+        <div class="controls">
+            <h3 style="margin-bottom: 15px; color: #ffd700;">📥 HTML 불러오기</h3>
+            <p style="margin-bottom: 15px; opacity: 0.8;">이전에 내보낸 HTML 코드를 붙여넣어 연표를 복원하세요:</p>
+            <div class="form-group">
+                <label for="importCode">HTML 코드 붙여넣기</label>
+                <textarea id="importCode" class="export-textarea" placeholder="내보낸 HTML 코드를 여기에 붙여넣으세요..."></textarea>
+            </div>
+            <button onclick="importTimeline()">📥 연표 불러오기</button>
+            <button onclick="clearImportArea()" style="background: linear-gradient(45deg, #6c757d, #868e96); margin-left: 10px;">입력 영역 지우기</button>
+        </div>
         <div class="export-section">
             <h3 style="margin-bottom: 15px; color: #ffd700;">🔗 HTML 내보내기</h3>
             <p style="margin-bottom: 15px; opacity: 0.8;">아래 코드를 복사하여 HTML 게시판에 붙여넣으세요:</p>
@@ -639,7 +648,8 @@
                 return;
             }
 
-            let html = `<div style="position: relative; padding: 20px 0; border-radius: 10px; margin: 20px 0;">
+            let html = `<!-- Timeline Generator Export -->
+            <div style="position: relative; padding: 20px 0; border-radius: 10px; margin: 20px 0;">
     <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: ${timelineSettings.width}px; background: ${timelineSettings.color}; transform: translateX(-50%); box-shadow: 0 0 10px ${timelineSettings.color}80;"></div>
 `;
 
@@ -681,7 +691,7 @@
 `;
             });
 
-            html += '</div>';
+            html += '</div>\n<!-- /Timeline Generator Export -->';
 
             document.getElementById('exportCode').value = html;
         }
@@ -862,6 +872,110 @@
             if (cancelBtn) {
                 cancelBtn.remove();
             }
+        }
+        // HTML 불러오기 관련 함수들
+        function importTimeline() {
+            const htmlCode = document.getElementById('importCode').value.trim();
+            
+            if (!htmlCode) {
+                alert('불러올 HTML 코드를 입력해주세요!');
+                return;
+            }
+
+            try {
+                parseHTMLAndRestore(htmlCode);
+                alert('연표가 성공적으로 불러와졌습니다!');
+                clearImportArea();
+            } catch (error) {
+                alert('HTML 코드를 분석하는 중 오류가 발생했습니다. 올바른 형식인지 확인해주세요.');
+                console.error('Import error:', error);
+            }
+        }
+
+        function parseHTMLAndRestore(htmlCode) {
+            // 임시 div 요소를 만들어서 HTML 파싱
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlCode;
+            
+            // 기존 데이터 초기화
+            events = [];
+            factions = [
+                { name: '중앙 (진영 없음)', color: '#6c757d', titleColor: '#333333', isDefault: true }
+            ];
+
+            // 타임라인 설정 복원
+            const timelineLine = tempDiv.querySelector('div[style*="position: absolute"]');
+            if (timelineLine) {
+                const style = timelineLine.getAttribute('style');
+                const widthMatch = style.match(/width:\s*(\d+)px/);
+                const colorMatch = style.match(/background:\s*(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})/);
+                
+                if (widthMatch) {
+                    timelineSettings.width = parseInt(widthMatch[1]);
+                    document.getElementById('timelineWidth').value = timelineSettings.width;
+                }
+                if (colorMatch) {
+                    timelineSettings.color = colorMatch[1];
+                    document.getElementById('timelineColor').value = timelineSettings.color;
+                }
+            }
+
+            // 이벤트 데이터 추출
+            const eventElements = tempDiv.querySelectorAll('div[style*="position: relative"][style*="margin:"]');
+            
+            eventElements.forEach(eventEl => {
+                const contentDiv = eventEl.querySelector('div[style*="background: white"]');
+                if (!contentDiv) return;
+
+                // 진영 정보 추출
+                const factionBadge = contentDiv.querySelector('div[style*="background-color:"]');
+                let faction = null;
+                
+                if (factionBadge) {
+                    const factionName = factionBadge.textContent.trim();
+                    const factionStyle = factionBadge.getAttribute('style');
+                    const colorMatch = factionStyle.match(/background-color:\s*(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})/);
+                    const factionColor = colorMatch ? colorMatch[1] : '#ff6b6b';
+                    
+                    // 연도 색상에서 제목 색상 추출
+                    const yearDiv = contentDiv.querySelector('div[style*="font-weight: 700"]');
+                    const yearStyle = yearDiv ? yearDiv.getAttribute('style') : '';
+                    const titleColorMatch = yearStyle.match(/color:\s*(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})/);
+                    const titleColor = titleColorMatch ? titleColorMatch[1] : '#333333';
+
+                    // 기존 진영에서 찾거나 새로 추가
+                    faction = factions.find(f => f.name === factionName);
+                    if (!faction) {
+                        faction = { name: factionName, color: factionColor, titleColor: titleColor };
+                        factions.push(faction);
+                    }
+                }
+
+                // 이벤트 정보 추출
+                const yearEl = contentDiv.querySelector('div[style*="font-weight: 700"]');
+                const titleEl = contentDiv.querySelector('div[style*="font-weight: 600"]');
+                const descEl = contentDiv.querySelector('div[style*="line-height: 1.5"]');
+
+                if (yearEl && titleEl) {
+                    events.push({
+                        year: yearEl.textContent.trim(),
+                        title: titleEl.textContent.trim(),
+                        description: descEl ? descEl.textContent.trim() : '',
+                        faction: faction
+                    });
+                }
+            });
+
+            // UI 업데이트
+            updateFactionDisplay();
+            updateFactionSelect();
+            updateTimeline();
+            updateTimelineStyle();
+            generateExportCode();
+        }
+
+        function clearImportArea() {
+            document.getElementById('importCode').value = '';
         }
         // 초기화
         initDefaultFactions();
