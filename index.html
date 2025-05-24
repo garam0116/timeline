@@ -577,6 +577,33 @@
             updateTimeline();
             generateExportCode();
         }
+            // 진영별 위치를 결정하는 함수
+            function getFactionPosition(factionName) {
+                // 진영별 고정 위치 매핑
+                const factionPositions = {
+                    '범인류사': 'left',
+                    '이문대': 'right'
+                };
+                
+                // 기본적으로 정의된 진영이면 해당 위치 반환
+                if (factionPositions[factionName]) {
+                    return factionPositions[factionName];
+                }
+                
+                // 새로운 진영이면 동적으로 위치 할당
+                const existingFactions = Object.keys(factionPositions);
+                const leftFactions = existingFactions.filter(name => factionPositions[name] === 'left');
+                const rightFactions = existingFactions.filter(name => factionPositions[name] === 'right');
+                
+                // 좌우 균형을 맞춰서 배치
+                if (leftFactions.length <= rightFactions.length) {
+                    factionPositions[factionName] = 'left';
+                    return 'left';
+                } else {
+                    factionPositions[factionName] = 'right';
+                    return 'right';
+                }
+            }
 
         function updateTimeline() {
             const timeline = document.getElementById('timeline');
@@ -597,16 +624,26 @@
             events.forEach((event, index) => {
                 const item = document.createElement('div');
                 item.className = 'timeline-item';
-
+                
                 let position = 'center';
+
                 if (event.faction && event.faction.name !== '중앙 (진영 없음)') {
-                    // 진영이 있는 경우 좌우 교대로 배치
-                    if (event.faction.name === '범인류사' || leftCount <= rightCount) {
+                    // 진영별 고정 위치 결정
+                    if (event.faction.name.includes('범인류사')) {
                         position = 'left';
-                        leftCount++;
-                    } else {
+                    } else if (event.faction.name.includes('이문대')) {
                         position = 'right';
-                        rightCount++;
+                    } else {
+                        // 기타 진영들은 순서대로
+                        const otherFactions = [...new Set(events.filter(e => 
+                            e.faction && 
+                            e.faction.name !== '중앙 (진영 없음)' && 
+                            !e.faction.name.includes('범인류사') && 
+                            !e.faction.name.includes('이문대')
+                        ).map(e => e.faction.name))];
+                        
+                        const factionIndex = otherFactions.indexOf(event.faction.name);
+                        position = (factionIndex % 2 === 0) ? 'left' : 'right';
                     }
                 }
 
